@@ -14,7 +14,7 @@ export const git = {
    * @return { Result<boolean> } hasUncommitedChanges
    */
   async hasUncommitedChanges() {
-    const [result, e] =  await callGit(['status', '-s'])
+    const [result, e] = await callGit(['status', '-s'])
     if (e) {
       return [undefined, e]
     }
