@@ -1,5 +1,8 @@
 export type Config = {
-  repository: string
+  repository: {
+    url: string
+    branch: string
+  }
   folders: Array<{
     name: string
     destination: string
