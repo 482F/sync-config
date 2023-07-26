@@ -26,6 +26,15 @@ async function syncAction() {
 
   await prepareLocalBranch()
   await prepareRemoteBranch()
+
+  /**
+   * TODO:
+   * リモートのディレクトリを読んで、js や ts を実行した結果を展開する用のブランチを作る必要がある
+   * リモートブランチのコミット履歴から展開リモートブランチに一つずつコミットする
+   * 展開リモートブランチのコミットメッセージには、リモートブランチのコミットハッシュを含める
+   * - 過去のコミットについてハッシュが食い違った場合は rebase とかされているので戻ってそこから修正？
+   * - でもローカルブランチにどうやってマージすればいいんだろうか。そのままマージするか
+   */
 }
 
 export const syncCommand = new Command()
