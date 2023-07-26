@@ -1,8 +1,6 @@
 export const ConfigFileName = 'sync-config.json5'
 
 export const Git = {
-  branch: {
-    remote: 'sync-config---remote',
-    local: 'sync-config---local',
-  },
+  localBranch: 'sync-config---local',
+  remote: 'sync-config---template-remote',
 } as const
