@@ -3,6 +3,15 @@ import { git } from '../utils/git.ts'
 import { ExpectedError } from '../utils/misc.ts'
 import { BranchNames } from '../utils/const.ts'
 
+async function prepareRemoteBranch() {
+  const [, createBranchError] = await git.createBranchIfNotExists(
+    BranchNames.remote,
+  )
+  if (createBranchError) {
+    throw createBranchError
+  }
+}
+
 async function syncAction() {
   const [hasUncommitedChanges, hasUncommitedChangesError] = await git
     .hasUncommitedChanges()
@@ -13,12 +22,7 @@ async function syncAction() {
       ))
   }
 
-  const [, createBranchError] = await git.createBranchIfNotExists(
-    BranchNames.remote,
-  )
-  if (createBranchError) {
-    throw createBranchError
-  }
+  await prepareRemoteBranch()
 }
 
 export const syncCommand = new Command()
