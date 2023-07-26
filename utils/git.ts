@@ -42,6 +42,13 @@ export const git = {
     }
     return [true, undefined]
   },
+  async checkoutBranch(branchName: string) {
+    const [, e] = await callGit(['checkout', branchName])
+    if (e) {
+      return [undefined, e]
+    }
+    return [undefined, undefined]
+  },
 } as const satisfies Record<
   string,
   // deno-lint-ignore no-explicit-any
