@@ -10,8 +10,16 @@ async function callGit(args: string[]): Promise<Result<string>> {
 }
 
 export const git = {
-  async shortStatus() {
-    return await callGit(['status', '-s'])
+  /**
+   * @return { Result<boolean> } hasUncommitedChanges
+   */
+  async hasUncommitedChanges() {
+    const [result, e] =  await callGit(['status', '-s'])
+    if (e) {
+      return [undefined, e]
+    }
+
+    return [result !== '', undefined]
   },
   /**
    * @returns { Result<boolean> } isBranchCreated
