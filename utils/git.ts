@@ -42,5 +42,8 @@ export const git = {
     }
     return [true, undefined]
   },
+} as const satisfies Record<
+  string,
   // deno-lint-ignore no-explicit-any
-} satisfies Record<string, (...args: any[]) => Promise<Result<unknown>>>
+  (...args: any[]) => Promise<Result<unknown>>
+>
