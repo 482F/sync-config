@@ -1,20 +1,22 @@
 import { Command } from 'https://deno.land/x/cliffy@v0.25.7/command/mod.ts'
 import { git } from '../utils/git.ts'
-import { ExpectedError } from '../utils/misc.ts'
+import { ExpectedError, getConfig } from '../utils/misc.ts'
 import { Git } from '../utils/const.ts'
 import { unwrap } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 
 async function prepareRemoteBranch() {
-  unwrap(await git.createBranchIfNotExists(Git.branch.remote))
+  const config = unwrap(await getConfig())
+  unwrap(await git.addRemote(Git.remote, config.repository.url))
+  unwrap(
+    await git.createBranchIfNotExists(
+      Git.branch.remote,
+      `${Git.remote}/${config.repository.branch}`,
+    ),
+  )
   unwrap(await git.checkoutBranch(Git.branch.remote))
 }
 
 async function syncAction() {
-  const isGitDir = unwrap(await git.isGitDir())
-  if (!isGitDir) {
-    throw new ExpectedError('git ディレクトリ内でのみ実行可能です')
-  }
-
   const [hasUncommitedChanges, hasUncommitedChangesError] = await git
     .hasUncommitedChanges()
   if (hasUncommitedChanges || hasUncommitedChangesError) {
