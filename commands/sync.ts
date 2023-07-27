@@ -5,7 +5,7 @@ import { Git } from '../utils/const.ts'
 import { unwrap } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 
 async function prepareLocalBranch() {
-  unwrap(await git.createOrphanBranchIfNotExists(Git.localBranch))
+  unwrap(await git.createOrphanBranchIfNotExists(Git.branch.local))
 }
 
 async function prepareRemoteBranch() {
