@@ -5,3 +5,6 @@ export type Config = {
     destination: string
   }>
 }
+
+export class ExpectedError extends Error {
+}

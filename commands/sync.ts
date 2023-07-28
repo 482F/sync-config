@@ -1,7 +1,13 @@
 import { Command } from 'https://deno.land/x/cliffy@v0.25.7/command/mod.ts'
+import { git } from '../utils/git.ts'
+import { ExpectedError } from '../utils/misc.ts'
 
-function syncAction() {
-  console.log('sync')
+async function syncAction() {
+  const [shortStatus, shortStatusError] = await git.shortStatus()
+  if (shortStatus !== '') {
+    throw (shortStatusError ??
+      new ExpectedError('未コミットの変更が残っている状態で同期することはできません'))
+  }
 }
 
 export const syncCommand = new Command()

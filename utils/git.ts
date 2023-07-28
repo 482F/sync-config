@@ -10,7 +10,8 @@ async function callGit(args: string[]): Promise<Result<string>> {
 }
 
 export const git = {
-  async status(...options: string[]) {
-    return await callGit(['status', ...options])
+  async shortStatus() {
+    return await callGit(['status', '-s'])
   },
-} satisfies Record<string, () => Promise<Result<unknown>>>
+  // deno-lint-ignore no-explicit-any
+} satisfies Record<string, (...args: any[]) => Promise<Result<unknown>>>

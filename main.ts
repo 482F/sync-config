@@ -5,10 +5,20 @@ import {
 
 import { initCommand } from './commands/init.ts'
 import { syncCommand } from './commands/sync.ts'
+import { ExpectedError } from './utils/misc.ts'
 
-syncCommand
-  .name('sync-config')
-  .command('init', initCommand)
-  .command('completions', new CompletionsCommand())
-  .hidden()
-  .parse(Deno.args)
+try {
+  await syncCommand
+    .name('sync-config')
+    .command('init', initCommand)
+    .command('completions', new CompletionsCommand())
+    .hidden()
+    .parse(Deno.args)
+} catch (e) {
+  if (e instanceof ExpectedError) {
+    console.error('[ERROR]', e.message)
+  } else {
+    console.error(e)
+  }
+  Deno.exit(1)
+}
