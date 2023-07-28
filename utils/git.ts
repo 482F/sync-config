@@ -13,20 +13,27 @@ export const git = {
   /**
    * @return { Result<boolean> } isGitDir
    */
-  async isGitDir() {
-    const [, e] = await callGit(['status'])
-    if (e) {
+  async isGitDirRoot() {
+    const [, statusError] = await callGit(['status'])
+    if (statusError) {
       if (
-        e?.message.includes(
+        statusError.message.includes(
           'fatal: not a git repository (or any of the parent directories): .git',
         )
       ) {
         return [false, undefined]
       } else {
-        return [undefined, e]
+        return [undefined, statusError]
       }
     }
-    return [true, undefined]
+
+    const [result, revParseError] = await callGit(['rev-parse', '--show-cdup'])
+
+    if (revParseError) {
+      return [undefined, revParseError]
+    }
+
+    return [Boolean(result.match(/^\s+$/)), undefined]
   },
   /**
    * @return { Result<boolean> } hasUncommitedChanges
