@@ -1,4 +1,4 @@
-import { Result } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/master/src/common.ts'
+import { Result } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 
 async function callGit(args: string[]): Promise<Result<string>> {
   const output = await new Deno.Command('git', { args }).output()
