@@ -9,8 +9,8 @@ async function callGit(args: string[]): Promise<Result<string>> {
     return [undefined, new Error(new TextDecoder().decode(output.stderr))]
   }
 }
-async function checkoutBranch(
-  branchName: string,
+async function checkout(
+  target: string,
   options?: string[],
   callback?: () => unknown,
 ): Promise<Result<undefined>> {
@@ -28,7 +28,7 @@ async function checkoutBranch(
     ]
   }
 
-  r = await callGit(['checkout', ...(options ?? []), branchName])
+  r = await callGit(['checkout', ...(options ?? []), target])
   if (r[1]) {
     return [undefined, r[1]]
   }
@@ -124,14 +124,14 @@ export const git = {
     } else if (
       branches.match(new RegExp(`^. remotes/[^/]+/${branchName}`, 'm'))
     ) {
-      const [, e] = await checkoutBranch(branchName)
+      const [, e] = await checkout(branchName)
       if (e) {
         return [undefined, e]
       }
       return [false, undefined]
     }
 
-    const [, e] = await checkoutBranch(branchName, ['--orphan'], async () => {
+    const [, e] = await checkout(branchName, ['--orphan'], async () => {
       r = await callGit(['reset', '--hard'])
       if (r[1]) {
         return [undefined, r[1]]
@@ -148,8 +148,8 @@ export const git = {
 
     return [true, undefined]
   },
-  checkoutBranch: async (branchName: string, callback?: () => unknown) =>
-    await checkoutBranch(branchName, [], callback),
+  checkout: async (target: string, callback?: () => unknown) =>
+    await checkout(target, [], callback),
 } as const satisfies Record<
   string,
   // deno-lint-ignore no-explicit-any
