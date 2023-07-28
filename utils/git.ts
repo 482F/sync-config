@@ -11,6 +11,24 @@ async function callGit(args: string[]): Promise<Result<string>> {
 
 export const git = {
   /**
+   * @return { Result<boolean> } isGitDir
+   */
+  async isGitDir() {
+    const [, e] = await callGit(['status'])
+    if (e) {
+      if (
+        e?.message.includes(
+          'fatal: not a git repository (or any of the parent directories): .git',
+        )
+      ) {
+        return [false, undefined]
+      } else {
+        return [undefined, e]
+      }
+    }
+    return [true, undefined]
+  },
+  /**
    * @return { Result<boolean> } hasUncommitedChanges
    */
   async hasUncommitedChanges() {

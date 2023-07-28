@@ -10,6 +10,11 @@ async function prepareRemoteBranch() {
 }
 
 async function syncAction() {
+  const isGitDir = unwrap(await git.isGitDir())
+  if (!isGitDir) {
+    throw new ExpectedError('git ディレクトリ内でのみ実行可能です')
+  }
+
   const [hasUncommitedChanges, hasUncommitedChangesError] = await git
     .hasUncommitedChanges()
   if (hasUncommitedChanges || hasUncommitedChangesError) {
