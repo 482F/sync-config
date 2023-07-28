@@ -6,6 +6,7 @@ import { unwrap } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.
 
 async function prepareRemoteBranch() {
   unwrap(await git.createBranchIfNotExists(Git.branch.remote))
+  unwrap(await git.checkoutBranch(Git.branch.remote))
 }
 
 async function syncAction() {
