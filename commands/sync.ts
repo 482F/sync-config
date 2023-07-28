@@ -4,16 +4,14 @@ import { ExpectedError, getConfig } from '../utils/misc.ts'
 import { Git } from '../utils/const.ts'
 import { unwrap } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 
+async function prepareLocalBranch() {
+  unwrap(await git.createOrphanBranchIfNotExists(Git.localBranch))
+}
+
 async function prepareRemoteBranch() {
   const config = unwrap(await getConfig())
-  unwrap(await git.addRemote(Git.remote, config.repository.url))
-  unwrap(
-    await git.createBranchIfNotExists(
-      Git.branch.remote,
-      `${Git.remote}/${config.repository.branch}`,
-    ),
-  )
-  unwrap(await git.checkoutBranch(Git.branch.remote))
+  unwrap(await git.addRemoteIfNotExists(Git.remote, config.repository.url))
+  unwrap(await git.fetch(Git.remote))
 }
 
 async function syncAction() {
@@ -26,6 +24,7 @@ async function syncAction() {
       ))
   }
 
+  await prepareLocalBranch()
   await prepareRemoteBranch()
 }
 
