@@ -1,6 +1,7 @@
 import { Command } from 'https://deno.land/x/cliffy@v0.25.7/command/mod.ts'
 import { git } from '../utils/git.ts'
 import { ExpectedError } from '../utils/misc.ts'
+import { BranchNames } from '../utils/const.ts'
 
 async function syncAction() {
   const [hasUncommitedChanges, hasUncommitedChangesError] = await git
@@ -13,7 +14,7 @@ async function syncAction() {
   }
 
   const [, createBranchError] = await git.createBranchIfNotExists(
-    'sync-config-remote',
+    BranchNames.remote,
   )
   if (createBranchError) {
     throw createBranchError
