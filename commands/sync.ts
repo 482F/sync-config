@@ -3,9 +3,10 @@ import { git } from '../utils/git.ts'
 import { ExpectedError } from '../utils/misc.ts'
 
 async function syncAction() {
-  const [shortStatus, shortStatusError] = await git.shortStatus()
-  if (shortStatus !== '') {
-    throw (shortStatusError ??
+  const [hasUncommitedChanges, hasUncommitedChangesError] = await git
+    .hasUncommitedChanges()
+  if (hasUncommitedChanges || hasUncommitedChangesError) {
+    throw (hasUncommitedChangesError ??
       new ExpectedError(
         '未コミットの変更が残っている状態で同期することはできません',
       ))
