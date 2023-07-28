@@ -2,14 +2,10 @@ import { Command } from 'https://deno.land/x/cliffy@v0.25.7/command/mod.ts'
 import { git } from '../utils/git.ts'
 import { ExpectedError } from '../utils/misc.ts'
 import { Git } from '../utils/const.ts'
+import { unwrap } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 
 async function prepareRemoteBranch() {
-  const [, createBranchError] = await git.createBranchIfNotExists(
-    BranchNames.remote,
-  )
-  if (createBranchError) {
-    throw createBranchError
-  }
+  unwrap(await git.createBranchIfNotExists(Git.branch.remote))
 }
 
 async function syncAction() {
