@@ -119,7 +119,6 @@ export const git = {
     }
 
     const [branches] = r
-    console.log({ branches })
     if (branches.match(new RegExp(`^. ${branchName}$`, 'm'))) {
       return [false, undefined]
     } else if (
