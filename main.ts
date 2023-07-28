@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-run --allow-write=. --allow-read=. --ext ts
+#!/usr/bin/env -S deno run --allow-run=git --allow-write=. --allow-read=. --ext ts
 import {
   CompletionsCommand,
 } from 'https://deno.land/x/cliffy@v0.25.7/command/mod.ts'
