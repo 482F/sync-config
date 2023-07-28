@@ -13,7 +13,10 @@ export async function initAction() {
   }
 
   const defaultConfig = {
-    repository: '',
+    repository: {
+      url: '',
+      branch: 'master',
+    },
     folders: [
       {
         name: '',
