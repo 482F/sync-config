@@ -13,5 +13,26 @@ export const git = {
   async shortStatus() {
     return await callGit(['status', '-s'])
   },
+  /**
+   * @returns { Result<boolean> } isBranchCreated
+   */
+  async createBranchIfNotExists(branchName: string) {
+    let r: Result<string>
+    r = await callGit(['branch'])
+    if (r[1]) {
+      return [undefined, r[1]]
+    }
+
+    const [branches] = r
+    if (branches.match(new RegExp(`^. ${branchName}$`, 'm'))) {
+      return [false, undefined]
+    }
+    r = await callGit(['branch', branchName])
+
+    if (r[1]) {
+      return [undefined, r[1]]
+    }
+    return [true, undefined]
+  },
   // deno-lint-ignore no-explicit-any
 } satisfies Record<string, (...args: any[]) => Promise<Result<unknown>>>
