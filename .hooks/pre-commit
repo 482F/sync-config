@@ -3,4 +3,5 @@
 
 deno fmt
 deno lint
+deno check ./main.ts
 deno task test
