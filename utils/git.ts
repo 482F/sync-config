@@ -33,14 +33,14 @@ async function checkout(
     return [undefined, r[1]]
   }
 
-  await callback?.()
-
-  r = await callGit(['checkout', originalBranchName])
-  if (r[1]) {
-    return [undefined, r[1]]
+  try {
+    await callback?.()
+    return [undefined, undefined]
+  } catch (e) {
+    return [undefined, e]
+  } finally {
+    await callGit(['checkout', originalBranchName])
   }
-
-  return [undefined, undefined]
 }
 
 export const git = {
