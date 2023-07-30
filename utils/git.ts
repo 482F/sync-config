@@ -24,13 +24,14 @@ async function checkout<R>(
   callback?: () => R,
 ): Promise<Result<undefined | Awaited<R>>> {
   let r: Result<string>
-  r = await callGit(['branch'])
+  r = await callGit(['branch', '--contains'])
   if (r[1]) {
     return [undefined, r[1]]
   }
 
-  const originalBranchName = r[0].match(/^\* (.+)$/m)?.[1]
-  if (!originalBranchName) {
+  const originalName = r[0].match(/^\* (\(HEAD detached at )?(.+?)\)?$/m)?.[2]
+
+  if (!originalName) {
     return [
       undefined,
       new ExpectedError('現在のブランチ名の取得に失敗しました'),
@@ -47,7 +48,7 @@ async function checkout<R>(
   } catch (e) {
     return [undefined, e]
   } finally {
-    await callGit(['checkout', originalBranchName])
+    await callGit(['checkout', originalName])
   }
 }
 
