@@ -9,11 +9,20 @@ async function callGit(args: string[]): Promise<Result<string>> {
     return [undefined, new Error(new TextDecoder().decode(output.stderr))]
   }
 }
-async function checkout(
+async function checkout<R>(
+  target: string,
+  options: string[],
+  callback: () => R,
+): Promise<Result<Awaited<R>>>
+async function checkout<R>(
   target: string,
   options?: string[],
-  callback?: () => unknown,
-): Promise<Result<undefined>> {
+): Promise<Result<undefined>>
+async function checkout<R>(
+  target: string,
+  options?: string[],
+  callback?: () => R,
+): Promise<Result<undefined | Awaited<R>>> {
   let r: Result<string>
   r = await callGit(['branch'])
   if (r[1]) {
@@ -34,8 +43,7 @@ async function checkout(
   }
 
   try {
-    await callback?.()
-    return [undefined, undefined]
+    return [await callback?.(), undefined]
   } catch (e) {
     return [undefined, e]
   } finally {
@@ -148,7 +156,7 @@ export const git = {
 
     return [true, undefined]
   },
-  checkout: async (target: string, callback?: () => unknown) =>
+  checkout: async <R>(target: string, callback: () => R) =>
     await checkout(target, [], callback),
 } as const satisfies Record<
   string,
