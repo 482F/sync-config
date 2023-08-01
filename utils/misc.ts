@@ -1,6 +1,6 @@
 import { Result } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 import { doExtends } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/json.ts'
-import { ConfigFileName } from './const.ts'
+import { configFileName } from './const.ts'
 import JSON5 from 'https://deno.land/x/json5@v1.0.0/mod.ts'
 
 const configModel = {
@@ -26,7 +26,7 @@ export async function isExists(filePath: string) {
 
 export const getConfig: () => Promise<Result<Config>> = (() => {
   const configPromise = (async (): Promise<Result<Config>> => {
-    const configFilePath = `./${ConfigFileName}`
+    const configFilePath = `./${configFileName}`
     const isExistsConfig = await isExists(configFilePath)
     if (!isExistsConfig) {
       return [

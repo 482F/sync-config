@@ -1,10 +1,10 @@
 import { Command } from 'https://deno.land/x/cliffy@v0.25.7/command/mod.ts'
 import JSON5 from 'https://deno.land/x/json5@v1.0.0/mod.ts'
-import { ConfigFileName } from '../utils/const.ts'
+import { configFileName } from '../utils/const.ts'
 import { type Config, isExists } from '../utils/misc.ts'
 
 export async function initAction() {
-  const configFilePath = `./${ConfigFileName}`
+  const configFilePath = `./${configFileName}`
   const isExistsConfig = await isExists(configFilePath)
   if (isExistsConfig) {
     return

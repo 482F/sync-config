@@ -3,11 +3,11 @@ import {
   assertEquals,
 } from 'https://deno.land/std@0.83.0/testing/asserts.ts'
 import JSON5 from 'https://deno.land/x/json5@v1.0.0/mod.ts'
-import { ConfigFileName } from '../utils/const.ts'
+import { configFileName } from '../utils/const.ts'
 import { initAction } from './init.ts'
 
 Deno.test('init', async (t) => {
-  const configFilePath = `./${ConfigFileName}`
+  const configFilePath = `./${configFileName}`
   await t.step('normal', async () => {
     await initAction()
     const config = JSON5.parse(await Deno.readTextFile(configFilePath))
