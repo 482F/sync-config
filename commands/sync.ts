@@ -1,9 +1,8 @@
 import { Command } from 'https://deno.land/x/cliffy@v0.25.7/command/mod.ts'
+import { unwrap } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
+import { Git } from '../utils/const.ts'
 import { git } from '../utils/git.ts'
 import { ExpectedError, getConfig } from '../utils/misc.ts'
-import { Git } from '../utils/const.ts'
-import { unwrap } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
-
 async function prepareLocalBranch() {
   unwrap(await git.createOrphanBranchIfNotExists(Git.branch.local))
 }
@@ -12,6 +11,8 @@ async function prepareRemoteBranch() {
   const config = unwrap(await getConfig())
   unwrap(await git.addRemoteIfNotExists(Git.remote, config.repository.url))
   unwrap(await git.fetch(Git.remote))
+
+  unwrap(await git.createOrphanBranchIfNotExists(Git.branch.remote))
 }
 
 async function syncAction() {
