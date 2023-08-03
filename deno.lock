@@ -72,6 +72,7 @@
     "https://deno.land/x/cliffy@v0.25.7/table/utils.ts": "187bb7dcbcfb16199a5d906113f584740901dfca1007400cba0df7dcd341bc29",
     "https://deno.land/x/json5@v1.0.0/mod.ts": "0975ee46086985b2e354e901d052f50b3c4b0ed828d0563492b6a02589402574",
     "https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/common.ts": "2467307147d40608e2018d6aac4cb72d914c6db35ebec08f63ad56a3771b447c",
+    "https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/const.ts": "756b37a19b5491eb1b7649f58b641146dc793a8b3effd343816420a981985100",
     "https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/json.ts": "28e6262de6e18ab251ba20096a481422a1c878f022492ecd64924cb3a97b6852",
     "https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts": "d0d40d5c06405d884d384e8ce7f602e6016b079f9ceeb21bda214625f8a9cdeb"
   }
