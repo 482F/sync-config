@@ -36,7 +36,8 @@ async function writeTextFile(
   path: string,
   body: string,
 ): Promise<Result<undefined>> {
-  return await Deno.writeTextFile(path, body)
+  await Deno.mkdir(dirname(path), { recursive: true })
+  return await Deno.writeTextFile(path, body, { create: true })
     .then(() => [undefined, undefined] as const)
     .catch((e) => [undefined, e])
 }
