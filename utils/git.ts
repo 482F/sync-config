@@ -110,11 +110,16 @@ async function checkout<R>(
   return [value[0], undefined]
 }
 
+type CommitLog = {
+  commitHash: string
+  authorName: string
+  authorEmail: string
+  date: Date
+  message: string
+}
+
 export const git = {
-  /**
-   * @return { Result<boolean> } isGitDir
-   */
-  async isGitDirRoot() {
+  async isGitDirRoot(): Promise<Result<boolean>> {
     const [, statusError] = await callGit(['status'])
     if (statusError) {
       if (
@@ -136,10 +141,10 @@ export const git = {
 
     return [Boolean(result.match(/^\s+$/)), undefined]
   },
-  /**
-   * @return { Result<boolean> } isRemoteAdded
-   */
-  async addRemoteIfNotExists(remoteName: string, remoteUrl: string) {
+  async addRemoteIfNotExists(
+    remoteName: string,
+    remoteUrl: string,
+  ): Promise<Result<boolean>> {
     const [remotes, getRemoteError] = await callGit(['remote'])
     if (getRemoteError) {
       return [undefined, getRemoteError]
@@ -164,10 +169,7 @@ export const git = {
   async fetch(remoteName: string) {
     return await callGit(['fetch', remoteName])
   },
-  /**
-   * @return { Result<boolean> } hasUncommitedChanges
-   */
-  async hasUncommitedChanges() {
+  async hasUncommitedChanges(): Promise<Result<boolean>> {
     const [result, e] = await callGit(['status', '-s'])
     if (e) {
       return [undefined, e]
@@ -175,10 +177,9 @@ export const git = {
 
     return [result !== '', undefined]
   },
-  /**
-   * @returns { Result<boolean> } isBranchCreated
-   */
-  async createOrphanBranchIfNotExists(branchName: string) {
+  async createOrphanBranchIfNotExists(
+    branchName: string,
+  ): Promise<Result<boolean>> {
     let r: Result<string>
     r = await callGit(['branch', '-a'])
     if (r[1]) {
@@ -225,7 +226,13 @@ export const git = {
   },
   checkout: async <R>(target: string, callback: () => R) =>
     await checkout(target, [], callback),
-  async log(name: string) {
+  async log(
+    name: string,
+  ): Promise<
+    Result<
+      CommitLog[]
+    >
+  > {
     const [rawLog, logErr] = await callGit(['log', name])
     if (logErr) {
       return [undefined, logErr]
