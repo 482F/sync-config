@@ -1,4 +1,4 @@
-import { basename } from 'https://deno.land/std@0.196.0/path/mod.ts'
+import { basename, dirname } from 'https://deno.land/std@0.196.0/path/mod.ts'
 import { isJson } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/json.ts'
 import { Result } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 import { ExpectedError } from './misc.ts'
@@ -16,12 +16,18 @@ type File = EntryIntersection & {
   save: () => Promise<Result<undefined>>
 }
 
-type Dir = EntryIntersection & {
+export type Dir = EntryIntersection & {
   isFile: false
   isDirectory: true
   children: {
     [name in string]: Entry
   }
+}
+
+export function getAllFiles(dir: Dir): File[] {
+  return Object.values(dir.children).flatMap((child) =>
+    child.isFile ? child : getAllFiles(child)
+  )
 }
 
 type Entry = Dir | File
