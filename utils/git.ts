@@ -1,4 +1,5 @@
 import type { IsNever } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/common.ts'
+import { matchGroupsAll } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/regex.ts'
 import type { Result } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 import { ExpectedError } from './misc.ts'
 
@@ -224,6 +225,43 @@ export const git = {
   },
   checkout: async <R>(target: string, callback: () => R) =>
     await checkout(target, [], callback),
+  async log(name: string) {
+    const [rawLog, logErr] = await callGit(['log', name])
+    if (logErr) {
+      return [undefined, logErr]
+    }
+
+    const [matches, matchErr] = matchGroupsAll(
+      rawLog,
+      new RegExp(
+        [
+          '(^|\n)commit (?<commitHash>[a-z0-9]+).+',
+          'Author: (?<authorName>.+?) <(?<authorEmail>.+)>',
+          'Date:   (?<date>.+)',
+          '',
+          '(?<message>(    .+\n)+)',
+        ].join('\n'),
+        'g',
+      ),
+      ['commitHash', 'authorName', 'authorEmail', 'date', 'message'],
+    )
+
+    if (matchErr) {
+      return [undefined, matchErr]
+    }
+
+    return [
+      matches.map((match) => ({
+        ...match,
+        date: new Date(match.date),
+        message: match
+          .message
+          .replace(/\n$/, '')
+          .replaceAll(/^\s{4}/gm, ''),
+      })),
+      undefined,
+    ]
+  },
 } as const satisfies {
   [key: string]: (
     // deno-lint-ignore no-explicit-any
