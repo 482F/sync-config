@@ -9,6 +9,21 @@ import { ExpectedError } from './utils/misc.ts'
 import { unwrap } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 import { git } from './utils/git.ts'
 
+/**
+ * ブランチ名
+ * - テンプレートブランチ
+ *   - `remotes/${consts.git.remote}/${config.repository.branch}`
+ *   - テンプレートリポジトリの config で指定されたブランチが upstream になっているリモートブランチ
+ *   - 参照側から変更を加えることがないため、リモートブランチしか存在しない
+ * - メインブランチ
+ *   - sync-config を実行しているリポジトリの本来のブランチ群。面倒であるため sync-config からは区別をせず、実行時のブランチがメインブランチとして認識される
+ * - リモート用ブランチ
+ *   - `${consts.branch.remote}`
+ *   - テンプレートブランチのファイル群から設定に基づいてファイルを展開するためのブランチ
+ * - ローカル用ブランチ
+ *   - メインブランチでのファイルの変更と、リモート用ブランチでのファイル変更をマージするためのブランチ
+ */
+
 try {
   const isGitDir = unwrap(await git.isGitDirRoot())
   if (!isGitDir) {
