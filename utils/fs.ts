@@ -1,7 +1,11 @@
-import { basename, dirname } from 'https://deno.land/std@0.196.0/path/mod.ts'
+import {
+  basename,
+  dirname,
+  resolve,
+} from 'https://deno.land/std@0.196.0/path/mod.ts'
 import { isJson } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/json.ts'
 import { Result } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
-import { ExpectedError } from './misc.ts'
+import { Config, ExpectedError } from './misc.ts'
 
 type EntryIntersection = {
   isFile: boolean
@@ -13,6 +17,12 @@ type File = EntryIntersection & {
   isFile: true
   isDirectory: false
   body: string
+  gened?: {
+    name: string
+    body: string
+    path: string
+    save: () => Promise<Result<undefined>>
+  }
   save: () => Promise<Result<undefined>>
 }
 
@@ -48,6 +58,63 @@ async function writeTextFile(
     .catch((e) => [undefined, e])
 }
 
+export function modifyByConfig(config: Config, dir: Dir): File[] {
+  const resolvedRules = config.folders.map((folder) => ({
+    name: resolve(folder.name),
+    destination: resolve(folder.destination),
+  }))
+  const pathConverter = (path: string) => {
+    for (const rule of resolvedRules) {
+      const newPath = path.replace(rule.name, rule.destination)
+      if (path !== newPath) {
+        return newPath
+      }
+    }
+  }
+  // TODO: 本当は file.path に基づいて Dir の木構造を変更したものを返したい。面倒なので一旦 getAllFiles
+  return getAllFiles(_modifyByConfig(pathConverter, dir))
+}
+
+function _modifyByConfig(
+  pathConverter: (path: string) => undefined | string,
+  dir: Dir,
+): Dir {
+  const modifiedDir: Dir = {
+    isFile: false,
+    isDirectory: true,
+    path: dir.path,
+    name: dir.name,
+    children: {},
+  }
+
+  for (const child of Object.values(dir.children)) {
+    const modifiedChild = (() => {
+      if (child.isFile) {
+        const mc = {
+          ...child,
+          ...(child.gened ?? {}),
+        }
+        delete mc.gened
+        return mc
+      } else {
+        return _modifyByConfig(pathConverter, child)
+      }
+    })()
+    const modifiedPath = pathConverter(modifiedChild.path)
+    if (!modifiedPath) {
+      continue
+    }
+    modifiedChild.path = modifiedPath
+    if (modifiedChild.isFile) {
+      modifiedChild.save = async () =>
+        await writeTextFile(modifiedPath, modifiedChild.body)
+    }
+    modifiedDir.children[modifiedChild.name] = modifiedChild
+  }
+
+  return modifiedDir
+}
+
 async function walk(dirPath: string): Promise<Result<Dir>> {
   const dir: Dir = {
     name: basename(dirPath),
@@ -64,32 +131,51 @@ async function walk(dirPath: string): Promise<Result<Dir>> {
         path: `${dirPath}/${entry.name}`,
       }
       if (child.isFile) {
-        const [body, err]: Result<string> = await (async () => {
-          if (child.name.match(/\.gen\.(ts|js)$/)) {
-            const value: unknown = await import(child.path).then((r) =>
-              r.default
-            )
-            if (!isJson(value)) {
-              return [
-                undefined,
-                new ExpectedError(
-                  `${child.path} は JSON 形式の値を export default していません`,
-                ),
-              ]
-            }
-            return [JSON.stringify(value, null, '  '), undefined] as const
+        const isGen = child.name.match(/\.gen\.(ts|js)$/)
+        const [body, bodyErr] = await readTextFile(child.path)
+        if (bodyErr) {
+          return [undefined, bodyErr]
+        }
+        const [gened, genedErr] = await (async () => {
+          if (!isGen) {
+            return [undefined, undefined]
           }
-          return await readTextFile(child.path)
+          const value: unknown = await import(child.path).then((r) => r.default)
+          if (!isJson(value)) {
+            return [
+              undefined,
+              new ExpectedError(
+                `${child.path} は JSON 形式の値を export default していません`,
+              ),
+            ]
+          }
+
+          const genedPath = child.path.replace(/\.gen\.(ts|js)$/, '')
+          const genedBody = JSON.stringify(value, null, '  ')
+          return [
+            {
+              name: child.name.replace(/\.gen\.(ts|js)$/, ''),
+              path: genedPath,
+              body: genedBody,
+              save: async () => await writeTextFile(genedPath, genedBody),
+            },
+            undefined,
+          ] as const
         })()
-        if (err) {
-          return [undefined, err]
+        if (genedErr) {
+          return [undefined, genedErr]
         }
         children[child.name] = {
           ...child,
           isFile: true,
           isDirectory: false,
           body,
-          save: async () => await writeTextFile(child.path, body),
+          gened,
+          save: async () =>
+            await writeTextFile(
+              child.path,
+              body,
+            ),
         }
       } else {
         const [walkedChild, err] = await walk(child.path)
