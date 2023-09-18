@@ -5,7 +5,7 @@ import {
 } from 'https://deno.land/std@0.196.0/path/mod.ts'
 import { isJson } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/json.ts'
 import { Result } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
-import { Config, ExpectedError } from './misc.ts'
+import { Config } from './misc.ts'
 
 type EntryIntersection = {
   isFile: boolean
@@ -42,6 +42,8 @@ export function getAllFiles(dir: Dir): File[] {
 
 type Entry = Dir | File
 
+let i = 0
+
 async function readTextFile(path: string): Promise<Result<string>> {
   return await Deno.readTextFile(path)
     .then((r) => [r, undefined] as const)
@@ -65,10 +67,10 @@ export function modifyByConfig(config: Config, dir: Dir): File[] {
   }))
   const pathConverter = (path: string) => {
     for (const rule of resolvedRules) {
-      const newPath = path.replace(rule.name, rule.destination)
-      if (path !== newPath) {
-        return newPath
+      if (!path.includes(rule.name)) {
+        continue
       }
+      return path.replace(rule.name, rule.destination)
     }
   }
   // TODO: 本当は file.path に基づいて Dir の木構造を変更したものを返したい。面倒なので一旦 getAllFiles
@@ -125,10 +127,25 @@ async function walk(dirPath: string): Promise<Result<Dir>> {
   }
   const { children } = dir
   try {
-    for await (const entry of Deno.readDir(dirPath)) {
+    const dirEnts = await (async () => {
+      try {
+        const ai = Deno.readDir(dirPath)
+        const result = []
+        for await (const entry of ai) {
+          result.push(entry)
+        }
+        return result
+      } catch (e) {
+        if (e.code === 'ENOENT') {
+          throw new Error(`ディレクトリが見つかりませんでした: ${dirPath}`)
+        }
+        throw e
+      }
+    })()
+    for (const entry of dirEnts) {
       const child = {
         ...entry,
-        path: `${dirPath}/${entry.name}`,
+        path: resolve(`${dirPath}/${entry.name}`),
       }
       if (child.isFile) {
         const isGen = child.name.match(/\.gen\.(ts|js)$/)
@@ -140,14 +157,11 @@ async function walk(dirPath: string): Promise<Result<Dir>> {
           if (!isGen) {
             return [undefined, undefined]
           }
-          const value: unknown = await import(child.path).then((r) => r.default)
+          const value: unknown = await import(`${child.path}?i=${i++}`).then((
+            r,
+          ) => r.default)
           if (!isJson(value)) {
-            return [
-              undefined,
-              new ExpectedError(
-                `${child.path} は JSON 形式の値を export default していません`,
-              ),
-            ]
+            return [undefined, undefined]
           }
 
           const genedPath = child.path.replace(/\.gen\.(ts|js)$/, '')

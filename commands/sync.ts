@@ -1,42 +1,185 @@
 import { Command } from 'https://deno.land/x/cliffy@v0.25.7/command/mod.ts'
-import { unwrap } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
-import  * as consts  from '../utils/const.ts'
-import { git } from '../utils/git.ts'
-import { ExpectedError, getConfig } from '../utils/misc.ts'
-async function prepareLocalBranch() {
-  unwrap(await git.createOrphanBranchIfNotExists(Git.branch.local))
+import {
+  unwrap,
+} from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
+import * as consts from '../utils/const.ts'
+import { CommitLog, git } from '../utils/git.ts'
+import { ExpectedError, getConfig, isExists } from '../utils/misc.ts'
+import { matchGroups } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/regex.ts'
+import { Dir, getAllFiles, getTree, modifyByConfig } from '../utils/fs.ts'
+import { dirname, relative } from 'https://deno.land/std@0.196.0/path/posix.ts'
+
+const templateCommitHashPrefix = 'sync-config template commit hash: '
+
+/**
+ * テンプレートブランチの初期化
+ * - リモートの追加
+ * - リモートの fetch
+ */
+async function prepareTemplateBranch() {
+  const config = unwrap(await getConfig())
+  unwrap(
+    await git.addRemoteIfNotExists(consts.git.remote, config.repository.url),
+  )
+  unwrap(await git.fetch(consts.git.remote))
 }
 
-async function prepareRemoteBranch() {
-  const config = unwrap(await getConfig())
-  unwrap(await git.addRemoteIfNotExists(consts.git.remote, config.repository.url))
-  unwrap(await git.fetch(consts.git.remote))
-
+/**
+ * リモート用ブランチの初期化
+ * - 空ブランチの作成
+ */
+async function prepareForRemoteBranch() {
   unwrap(await git.createOrphanBranchIfNotExists(consts.git.branch.remote))
+}
 
+function extractTemplateCommitHash(commit: CommitLog): string | undefined {
+  return matchGroups(
+    commit.message,
+    new RegExp(
+      `^${templateCommitHashPrefix}(?<templateCommitHash>.+)$`,
+      'm',
+    ),
+    ['templateCommitHash'],
+  )[0]?.templateCommitHash
+}
+
+/**
+ * テンプレートブランチのファイル群をリモート用ブランチに適用
+ */
+async function syncForRemote() {
+  const forRemoteCommits = unwrap(await git.log(consts.git.branch.remote))
+  const templateHashesInForRemote = new Set(
+    forRemoteCommits.map(
+      extractTemplateCommitHash,
+    ).filter(Boolean),
+  )
+
+  const config = unwrap(await getConfig())
+  const templateCommits = unwrap(
+    await git.log(`${consts.git.remote}/${config.repository.branch}`),
+  )
+
+  const needToSyncCommits = templateCommits.filter((templateCommit) =>
+    !templateHashesInForRemote.has(templateCommit.commitHash)
+  )
+
+  const commitAndTrees: {
+    tree: Dir
+    commit: typeof needToSyncCommits[number]
+  }[] = []
+  for (const needToSyncCommit of needToSyncCommits) {
+    commitAndTrees.push({
+      tree: unwrap(
+        await git.checkout(
+          needToSyncCommit.commitHash,
+          async () =>
+            unwrap(
+              await getTree(
+                (await Promise.all(
+                  config
+                    .folders
+                    .map(({ name }) => name)
+                    .map(async (name) =>
+                      await isExists(name) ? name : undefined
+                    ),
+                ))
+                  .filter((name: string | undefined): name is string =>
+                    Boolean(name)
+                  ),
+              ),
+            ),
+        ),
+      ),
+      commit: needToSyncCommit,
+    })
+  }
+
+  unwrap(
+    await git.checkout(
+      consts.git.branch.remote,
+      async () => {
+        const newCommits: CommitLog[] = []
+        for (const { commit, tree } of commitAndTrees) {
+          const modifiedFiles = modifyByConfig(config, tree)
+
+          await Promise.all(modifiedFiles.map((file) => file.save()))
+
+          const requiredFilePathSet = new Set(
+            modifiedFiles.map((file) => file.path),
+          )
+          const currentDir = unwrap(await getTree(['.'])).children['.']
+          if (!currentDir?.isDirectory) {
+            throw new Error('ディレクトリの取得に失敗しました')
+          }
+          delete currentDir.children['.git']
+          await Promise.all(
+            getAllFiles(currentDir)
+              .filter((file) => !requiredFilePathSet.has(file.path))
+              .map(async (file) => {
+                await Deno.remove(file.path)
+                let parentDir = dirname(file.path)
+                while (true) {
+                  if (relative('.', parentDir).match(/^\.\.\//)) {
+                    break
+                  }
+                  try {
+                    await Deno.remove(parentDir, { recursive: false })
+                  } catch (e) {
+                    if (e.code === 'ENOTEMPTY') {
+                      break
+                    }
+                    throw e
+                  }
+                  parentDir = dirname(parentDir)
+                }
+              }),
+          )
+
+          newCommits.push(unwrap(
+            await git.commitAll(
+              `${commit.message}\n\n${templateCommitHashPrefix}${commit.commitHash}`,
+            ),
+          ))
+        }
+        return newCommits
+      },
+    ),
+  )
+}
+
+/**
+ * メインブランチにコミットを cherry-pick する
+ */
+async function applyToMain() {
+  const mainBranchName = unwrap(await git.getCurrentBranchName())
+  const mainCommits = unwrap(await git.log(mainBranchName))
+  const templateHashesInMain = new Set(
+    mainCommits.map(extractTemplateCommitHash).filter(Boolean),
+  )
+
+  const forRemoteCommits = unwrap(await git.log(consts.git.branch.remote))
+  const targetCommits = forRemoteCommits.filter((commit) => {
+    const hash = extractTemplateCommitHash(commit)
+    return hash && !templateHashesInMain.has(hash)
+  })
+  await git.cherryPick(targetCommits.map((commit) => commit.commitHash))
 }
 
 async function syncAction() {
-  const [hasUncommitedChanges, hasUncommitedChangesError] = await git
-    .hasUncommitedChanges()
-  if (hasUncommitedChanges || hasUncommitedChangesError) {
-    throw (hasUncommitedChangesError ??
-      new ExpectedError(
-        '未コミットの変更が残っている状態で同期することはできません',
-      ))
+  const hasUncommitedChanges = unwrap(await git.hasUncommitedChanges())
+  if (hasUncommitedChanges) {
+    throw new ExpectedError(
+      '未コミットの変更が残っている状態で同期することはできません',
+    )
   }
 
-  await prepareLocalBranch()
-  await prepareRemoteBranch()
+  await prepareTemplateBranch()
+  await prepareForRemoteBranch()
 
-  /**
-   * TODO:
-   * リモートのディレクトリを読んで、js や ts を実行した結果を展開する用のブランチを作る必要がある
-   * リモートブランチのコミット履歴から展開リモートブランチに一つずつコミットする
-   * 展開リモートブランチのコミットメッセージには、リモートブランチのコミットハッシュを含める
-   * - 過去のコミットについてハッシュが食い違った場合は rebase とかされているので戻ってそこから修正？
-   * - でもローカルブランチにどうやってマージすればいいんだろうか。そのままマージするか
-   */
+  await syncForRemote()
+
+  await applyToMain()
+
 }
 
 export const syncCommand = new Command()
