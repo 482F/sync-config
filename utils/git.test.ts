@@ -2,6 +2,7 @@ import {
   assertEquals,
   assertNotEquals,
   assertStrictEquals,
+  assertThrowsAsync,
 } from 'https://deno.land/std@0.83.0/testing/asserts.ts'
 import { unwrap } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 import { git } from './git.ts'
@@ -118,6 +119,17 @@ Deno.test('git', async (t) => {
         await git.checkout('rem/master', () => git.log('HEAD')),
       )
       assertNotEquals(remCommits.length, 1)
+
+      assertEquals(unwrap(await git.getCurrentBranchName()), 'master')
+
+      assertEquals(
+        unwrap(await git.cherryPick(['remotes/rem/master~2'])),
+        undefined,
+      )
+
+      assertThrowsAsync(async () =>
+        unwrap(await git.cherryPick(['remotes/rem/master~0']))
+      )
     })
   })
 })
