@@ -246,7 +246,7 @@ export const git = {
           'Author: (?<authorName>.+?) <(?<authorEmail>.+)>',
           'Date:   (?<date>.+)',
           '',
-          '(?<message>(    .+\n)+)',
+          '(?<message>(    .*\n)+)',
         ].join('\n'),
         'g',
       ),
