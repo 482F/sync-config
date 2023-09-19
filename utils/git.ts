@@ -265,7 +265,7 @@ export const git = {
           .message
           .replace(/\n$/, '')
           .replaceAll(/^\s{4}/gm, ''),
-      })),
+      })).toReversed(),
       undefined,
     ]
   },
