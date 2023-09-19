@@ -5,7 +5,9 @@ import {
 import * as consts from '../utils/const.ts'
 import { CommitLog, git } from '../utils/git.ts'
 import { ExpectedError, getConfig, isExists } from '../utils/misc.ts'
-import { matchGroups } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/regex.ts'
+import {
+  matchGroupsAll,
+} from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/regex.ts'
 import { Dir, getAllFiles, getTree, modifyByConfig } from '../utils/fs.ts'
 import { dirname, relative } from 'https://deno.land/std@0.196.0/path/posix.ts'
 
@@ -32,15 +34,15 @@ async function prepareForRemoteBranch() {
   unwrap(await git.createOrphanBranchIfNotExists(consts.git.branch.remote))
 }
 
-function extractTemplateCommitHash(commit: CommitLog): string | undefined {
-  return matchGroups(
+function extractTemplateCommitHashes(commit: CommitLog): string[] {
+  return matchGroupsAll(
     commit.message,
     new RegExp(
-      `^${templateCommitHashPrefix}(?<templateCommitHash>.+)$`,
-      'm',
+      `^(    )?${templateCommitHashPrefix}(?<templateCommitHash>.+)$`,
+      'gm',
     ),
     ['templateCommitHash'],
-  )[0]?.templateCommitHash
+  )[0]?.map((group) => group.templateCommitHash) ?? []
 }
 
 /**
@@ -49,8 +51,8 @@ function extractTemplateCommitHash(commit: CommitLog): string | undefined {
 async function syncForRemote() {
   const forRemoteCommits = unwrap(await git.log(consts.git.branch.remote))
   const templateHashesInForRemote = new Set(
-    forRemoteCommits.map(
-      extractTemplateCommitHash,
+    forRemoteCommits.flatMap(
+      extractTemplateCommitHashes,
     ).filter(Boolean),
   )
 
@@ -148,21 +150,46 @@ async function syncForRemote() {
 }
 
 /**
- * メインブランチにコミットを cherry-pick する
+ * メインブランチにコミットを適用する
  */
 async function applyToMain() {
+  const config = unwrap(await getConfig())
+
   const mainBranchName = unwrap(await git.getCurrentBranchName())
   const mainCommits = unwrap(await git.log(mainBranchName))
   const templateHashesInMain = new Set(
-    mainCommits.map(extractTemplateCommitHash).filter(Boolean),
+    mainCommits.flatMap(extractTemplateCommitHashes).filter(Boolean),
   )
 
   const forRemoteCommits = unwrap(await git.log(consts.git.branch.remote))
   const targetCommits = forRemoteCommits.filter((commit) => {
-    const hash = extractTemplateCommitHash(commit)
+    const hash = extractTemplateCommitHashes(commit)[0]
     return hash && !templateHashesInMain.has(hash)
   })
-  await git.cherryPick(targetCommits.map((commit) => commit.commitHash))
+  if (targetCommits.length <= 0) {
+    return
+  }
+
+  if (config.mergeMode === 'cherry-pick') {
+    unwrap(
+      await git.cherryPick(targetCommits.map((commit) => commit.commitHash)),
+    )
+  } else if (config.mergeMode === 'squash-merge') {
+    const [, err] = await git.merge(consts.git.branch.remote, {
+      squash: true,
+      unrelated: true,
+    })
+
+    if (err) {
+      return
+    }
+
+    unwrap(await git.commitAll('', { noEdit: true }))
+  } else {
+    return ((mode: never) => {
+      throw new ExpectedError(`mergeMode が不正な値です: ${mode}`)
+    })(config.mergeMode)
+  }
 }
 
 async function syncAction() {
