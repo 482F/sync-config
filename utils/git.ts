@@ -269,6 +269,29 @@ export const git = {
       undefined,
     ]
   },
+  async commitAll(message: string): Promise<Result<CommitLog>> {
+    const [, addErr] = await callGit(['add', '-A'])
+    if (addErr) {
+      return [undefined, addErr]
+    }
+
+    const [, commitErr] = await callGit(['commit', '-m', message])
+    if (commitErr) {
+      return [undefined, commitErr]
+    }
+
+    const [commits, logErr] = await git.log('HEAD...HEAD~1')
+    if (logErr) {
+      return [undefined, logErr]
+    }
+
+    const lastCommit = commits.at(-1)
+    if (!lastCommit) {
+      return [undefined, new Error('コミットの取得に失敗しました')]
+    }
+
+    return [lastCommit, undefined]
+  },
 } as const satisfies {
   [key: string]: (
     // deno-lint-ignore no-explicit-any
