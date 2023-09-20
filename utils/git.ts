@@ -31,21 +31,12 @@ const sequentialCheckout = (() => {
         const R extends [RR, IsNever<OR>] extends [[], false] ? OR[] : RR,
       >(): Promise<Result<R>> {
         let r: Result<string>
-        r = await callGit(['branch', '--contains'])
+        r = await git.getCurrentBranchName()
         if (r[1]) {
           return [undefined, r[1]]
         }
 
-        const originalName = r[0].match(
-          /^\* (\(HEAD detached at )?(.+?)\)?$/m,
-        )?.[2]
-
-        if (!originalName) {
-          return [
-            undefined,
-            new ExpectedError('現在のブランチ名の取得に失敗しました'),
-          ]
-        }
+        const originalName = r[0]
 
         try {
           const results: OR[] = []
@@ -110,7 +101,7 @@ async function checkout<R>(
   return [value[0], undefined]
 }
 
-type CommitLog = {
+export type CommitLog = {
   commitHash: string
   authorName: string
   authorEmail: string
@@ -291,6 +282,33 @@ export const git = {
     }
 
     return [lastCommit, undefined]
+  },
+  async getCurrentBranchName(): Promise<Result<string>> {
+    const [branchResult, err] = await callGit(['branch', '--contains'])
+    if (err) {
+      return [undefined, err]
+    }
+
+    const originalName = branchResult.match(
+      /^\* (\(HEAD detached at )?(.+?)\)?$/m,
+    )?.[2]
+
+    if (!originalName) {
+      return [
+        undefined,
+        new ExpectedError('現在のブランチ名の取得に失敗しました'),
+      ]
+    }
+
+    return [originalName, undefined]
+  },
+  async cherryPick(commitHashes: string[]): Promise<Result<undefined>> {
+    const [, err] = await callGit(['cherry-pick', ...commitHashes])
+    if (err) {
+      return [undefined, err]
+    }
+
+    return [undefined, undefined]
   },
 } as const satisfies {
   [key: string]: (
