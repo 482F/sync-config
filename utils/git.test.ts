@@ -55,11 +55,15 @@ Deno.test('git', async (t) => {
       assertEquals(unwrap(await git.hasUncommitedChanges()), true)
 
       assertEquals(
-        unwrap(await git.commitAll('add a.txt')).message,
-        'add a.txt',
+        unwrap(await git.commitAll('add a.txt\n\ntest commit\ncommit all'))
+          .message,
+        'add a.txt\n\ntest commit\ncommit all',
       )
       assertEquals(unwrap(await git.hasUncommitedChanges()), false)
-      assertEquals(unwrap(await git.log('HEAD')).at(-1)?.message, 'add a.txt')
+      assertEquals(
+        unwrap(await git.log('HEAD')).at(-1)?.message,
+        'add a.txt\n\ntest commit\ncommit all',
+      )
 
       assertEquals(
         unwrap(await git.createOrphanBranchIfNotExists('orphan')),
