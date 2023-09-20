@@ -266,7 +266,12 @@ export const git = {
       return [undefined, addErr]
     }
 
-    const [, commitErr] = await callGit(['commit', '-m', message])
+    const [, commitErr] = await callGit([
+      'commit',
+      '--allow-empty',
+      '-m',
+      message,
+    ])
     if (commitErr) {
       return [undefined, commitErr]
     }
@@ -303,7 +308,11 @@ export const git = {
     return [originalName, undefined]
   },
   async cherryPick(commitHashes: string[]): Promise<Result<undefined>> {
-    const [, err] = await callGit(['cherry-pick', ...commitHashes])
+    const [, err] = await callGit([
+      'cherry-pick',
+      '--allow-empty',
+      ...commitHashes,
+    ])
     if (err) {
       return [undefined, err]
     }
