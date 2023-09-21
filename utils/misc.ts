@@ -1,6 +1,6 @@
 import { Result } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 import { doExtends } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/json.ts'
-import { configFileName } from './const.ts'
+import { configFileName, MergeMode } from './const.ts'
 import JSON5 from 'https://deno.land/x/json5@v1.0.0/mod.ts'
 
 const configModel = {
@@ -14,6 +14,7 @@ const configModel = {
       destination: '',
     },
   ],
+  mergeMode: 'squash-merge' satisfies MergeMode as MergeMode,
 }
 
 export type Config = typeof configModel

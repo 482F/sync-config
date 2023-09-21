@@ -260,18 +260,30 @@ export const git = {
       undefined,
     ]
   },
-  async commitAll(message: string): Promise<Result<CommitLog>> {
+  async commitAll(
+    message: string,
+    options?: { noEdit: boolean },
+  ): Promise<Result<CommitLog>> {
     const [, addErr] = await callGit(['add', '-A'])
     if (addErr) {
       return [undefined, addErr]
     }
 
-    const [, commitErr] = await callGit([
-      'commit',
-      '--allow-empty',
-      '-m',
-      message,
-    ])
+    const args = ['commit', '--allow-empty']
+    ;([
+      ['noEdit', '--no-edit'],
+    ] as const)
+      .forEach(([optionName, arg]) => {
+        if (options?.[optionName]) {
+          args.push(arg)
+        }
+      })
+
+    if (!options?.noEdit) {
+      args.push('-m', message)
+    }
+
+    const [, commitErr] = await callGit(args)
     if (commitErr) {
       return [undefined, commitErr]
     }
@@ -313,6 +325,31 @@ export const git = {
       '--allow-empty',
       ...commitHashes,
     ])
+    if (err) {
+      return [undefined, err]
+    }
+
+    return [undefined, undefined]
+  },
+  async merge(branchName: string, options?: {
+    squash?: boolean
+    unrelated?: boolean
+  }): Promise<Result<undefined>> {
+    const args = [
+      'merge',
+    ]
+    ;([
+      ['squash', '--squash'],
+      ['unrelated', '--allow-unrelated-histories'],
+    ] as const)
+      .forEach(([optionName, arg]) => {
+        if (options?.[optionName]) {
+          args.push(arg)
+        }
+      })
+
+    args.push(branchName)
+    const [, err] = await callGit(args)
     if (err) {
       return [undefined, err]
     }

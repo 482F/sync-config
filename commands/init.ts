@@ -21,6 +21,7 @@ export async function initAction() {
         destination: '.',
       },
     ],
+    mergeMode: 'squash-merge',
   } satisfies Config
   await Deno.writeTextFile(
     configFilePath,
