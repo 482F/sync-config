@@ -65,20 +65,20 @@ export function modifyByConfig(config: Config, dir: Dir): File[] {
     name: resolve(folder.name),
     destination: resolve(folder.destination),
   }))
-  const pathConverter = (path: string) => {
-    for (const rule of resolvedRules) {
+  const pathConverter = (path: string) =>
+    resolvedRules.map((rule) => {
       if (!path.includes(rule.name)) {
-        continue
+        return
       }
       return path.replace(rule.name, rule.destination)
-    }
-  }
+    })
+      .filter((path: string | undefined): path is string => Boolean(path))
   // TODO: 本当は file.path に基づいて Dir の木構造を変更したものを返したい。面倒なので一旦 getAllFiles
   return getAllFiles(_modifyByConfig(pathConverter, dir))
 }
 
 function _modifyByConfig(
-  pathConverter: (path: string) => undefined | string,
+  pathConverter: (path: string) => string[],
   dir: Dir,
 ): Dir {
   const modifiedDir: Dir = {
@@ -102,16 +102,25 @@ function _modifyByConfig(
         return _modifyByConfig(pathConverter, child)
       }
     })()
-    const modifiedPath = pathConverter(modifiedChild.path)
-    if (!modifiedPath) {
+    const modifiedPaths = pathConverter(modifiedChild.path)
+    if (modifiedPaths.length <= 0) {
       continue
     }
-    modifiedChild.path = modifiedPath
-    if (modifiedChild.isFile) {
-      modifiedChild.save = async () =>
-        await writeTextFile(modifiedPath, modifiedChild.body)
+
+    // TODO: 展開先が複数あるルールの場合は children 下で name がユニークではなくなる
+    // そもそもパスが変わっているのに木構造を変えていないことが原因なので修正する
+    let i = 0
+    for (const modifiedPath of modifiedPaths) {
+      const newChild = {
+        ...modifiedChild,
+      }
+      newChild.path = modifiedPath
+      if (newChild.isFile) {
+        newChild.save = async () =>
+          await writeTextFile(modifiedPath, newChild.body)
+      }
+      modifiedDir.children[`${newChild.name}-${i++}`] = newChild
     }
-    modifiedDir.children[modifiedChild.name] = modifiedChild
   }
 
   return modifiedDir
