@@ -174,7 +174,9 @@ async function walk(dirPath: string): Promise<Result<Dir>> {
           }
 
           const genedPath = child.path.replace(/\.gen\.(ts|js)$/, '')
-          const genedBody = JSON.stringify(value, null, '  ')
+          const genedBody = typeof value === 'string'
+            ? value
+            : JSON.stringify(value, null, '  ')
           return [
             {
               name: child.name.replace(/\.gen\.(ts|js)$/, ''),
