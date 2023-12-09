@@ -21,7 +21,7 @@ export async function initAction() {
         destination: '.',
       },
     ],
-    mergeMode: 'squash-merge',
+    mergeMode: 'cherry-pick-squash',
   } satisfies Config
   await Deno.writeTextFile(
     configFilePath,
