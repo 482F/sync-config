@@ -127,7 +127,7 @@ async function syncForRemote() {
                   try {
                     await Deno.remove(parentDir, { recursive: false })
                   } catch (e) {
-                    if (e.code === 'ENOTEMPTY') {
+                    if (e.code === 'ENOTEMPTY' || e.code === 'ENOENT') {
                       break
                     }
                     throw e
