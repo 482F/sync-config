@@ -272,7 +272,7 @@ export const git = {
       return [undefined, addErr]
     }
 
-    const args = ['commit', '--allow-empty']
+    const args = ['commit', '--no-verify', '--allow-empty']
     ;([
       ['noEdit', '--no-edit'],
     ] as const)
