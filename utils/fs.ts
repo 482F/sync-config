@@ -17,6 +17,7 @@ type File = EntryIntersection & {
   isFile: true
   isDirectory: false
   body: string
+  mode: number | null
   gened?: {
     name: string
     body: string
@@ -53,11 +54,19 @@ async function readTextFile(path: string): Promise<Result<string>> {
 async function writeTextFile(
   path: string,
   body: string,
+  mode: number | null,
 ): Promise<Result<undefined>> {
   await Deno.mkdir(dirname(path), { recursive: true })
-  return await Deno.writeTextFile(path, body, { create: true })
+  const result = await Deno.writeTextFile(path, body, { create: true })
     .then(() => [undefined, undefined] as const)
-    .catch((e) => [undefined, e])
+    .catch((e) => [undefined, e] as const)
+  if (result[1] || !mode) {
+    return result
+  }
+
+  return await Deno.chmod(path, mode)
+    .then(() => [undefined, undefined] as const)
+    .catch((e) => [undefined, e] as const)
 }
 
 export function modifyByConfig(config: Config, dir: Dir): File[] {
@@ -117,7 +126,7 @@ function _modifyByConfig(
       newChild.path = modifiedPath
       if (newChild.isFile) {
         newChild.save = async () =>
-          await writeTextFile(modifiedPath, newChild.body)
+          await writeTextFile(modifiedPath, newChild.body, newChild.mode)
       }
       modifiedDir.children[`${newChild.name}-${i++}`] = newChild
     }
@@ -155,6 +164,7 @@ async function walk(dirPath: string): Promise<Result<Dir>> {
       const child = {
         ...entry,
         path: resolve(`${dirPath}/${entry.name}`),
+        mode: null satisfies number | null as number | null,
       }
       if (child.isFile) {
         const isGen = child.name.match(/\.gen\.(ts|js)$/)
@@ -162,6 +172,9 @@ async function walk(dirPath: string): Promise<Result<Dir>> {
         if (bodyErr) {
           return [undefined, bodyErr]
         }
+
+        child.mode = await Deno.stat(child.path).then((s) => s.mode)
+
         const [gened, genedErr] = await (async () => {
           if (!isGen) {
             return [undefined, undefined]
@@ -182,7 +195,8 @@ async function walk(dirPath: string): Promise<Result<Dir>> {
               name: child.name.replace(/\.gen\.(ts|js)$/, ''),
               path: genedPath,
               body: genedBody,
-              save: async () => await writeTextFile(genedPath, genedBody),
+              save: async () =>
+                await writeTextFile(genedPath, genedBody, child.mode),
             },
             undefined,
           ] as const
@@ -200,6 +214,7 @@ async function walk(dirPath: string): Promise<Result<Dir>> {
             await writeTextFile(
               child.path,
               body,
+              child.mode,
             ),
         }
       } else {
