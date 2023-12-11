@@ -3,8 +3,11 @@ import { matchGroupsAll } from 'https://raw.githubusercontent.com/482F/482F-ts-u
 import type { Result } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 import { ExpectedError } from './misc.ts'
 
-async function callGit(args: string[]): Promise<Result<string>> {
-  const output = await new Deno.Command('git', { args }).output()
+async function callGit(
+  args: string[],
+  env?: Record<string, string>,
+): Promise<Result<string>> {
+  const output = await new Deno.Command('git', { args, env }).output()
   if (output.success) {
     return [new TextDecoder().decode(output.stdout), undefined]
   } else {
@@ -354,6 +357,32 @@ export const git = {
       return [undefined, err]
     }
 
+    return [undefined, undefined]
+  },
+  async squash(start: number, end: number) {
+    const [targetHashes, logErr] = await callGit([
+      'log',
+      '--pretty=format:%h',
+      `HEAD~${end}..HEAD`,
+    ])
+    if (logErr) {
+      return [undefined, logErr]
+    }
+
+    const rebaseOperation = targetHashes
+      .split('\n')
+      .map((hash, i) => `${start <= i && i < end - 1 ? 's' : 'p'} ${hash}`)
+      .toReversed()
+      .join('\\n')
+
+    const [, rebaseErr] = await callGit(['rebase', '-i', `HEAD~${end}`], {
+      'GIT_SEQUENCE_EDITOR': `echo "${rebaseOperation}" >`,
+      'GIT_EDITOR': 'true',
+    })
+
+    if (rebaseErr) {
+      return [undefined, rebaseErr]
+    }
     return [undefined, undefined]
   },
 } as const satisfies {

@@ -14,7 +14,7 @@ const configModel = {
       destination: '',
     },
   ],
-  mergeMode: 'squash-merge' satisfies MergeMode as MergeMode,
+  mergeMode: 'cherry-pick-squash' satisfies MergeMode as MergeMode,
 }
 
 export type Config = typeof configModel

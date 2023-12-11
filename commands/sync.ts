@@ -174,17 +174,11 @@ async function applyToMain() {
     unwrap(
       await git.cherryPick(targetCommits.map((commit) => commit.commitHash)),
     )
-  } else if (config.mergeMode === 'squash-merge') {
-    const [, err] = await git.merge(consts.git.branch.remote, {
-      squash: true,
-      unrelated: true,
-    })
-
-    if (err) {
-      return
-    }
-
-    unwrap(await git.commitAll('', { noEdit: true }))
+  } else if (config.mergeMode === 'cherry-pick-squash') {
+    unwrap(
+      await git.cherryPick(targetCommits.map((commit) => commit.commitHash)),
+    )
+    unwrap(await git.squash(0, targetCommits.length))
   } else {
     return ((mode: never) => {
       throw new ExpectedError(`mergeMode が不正な値です: ${mode}`)

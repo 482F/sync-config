@@ -81,7 +81,7 @@ Deno.test('tree', async (t) => {
           name: 'a',
           destination: '.',
         }],
-        mergeMode: 'squash-merge',
+        mergeMode: 'cherry-pick-squash',
       }, tree)
 
       const modifiedGen = modifiedFiles.find((file) => file.name === 'j.json')
